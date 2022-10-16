@@ -1,11 +1,12 @@
 (ns bank-ocr-kata-clojure.core
-  (:require [clojure.java.io :as io]
-            [clojure.tools.cli :as cli]
-            [clojure.string :as str]
-            [bank-ocr-kata-clojure.writer :as writer]
-            [bank-ocr-kata-clojure.reader :as reader]
-            [bank-ocr-kata-clojure.parser :as parser]
-            [bank-ocr-kata-clojure.validator :as validator])
+  (:require [bank-ocr-kata-clojure.guesser :as g]
+            [bank-ocr-kata-clojure.parser :as p]
+            [bank-ocr-kata-clojure.reader :as r]
+            [bank-ocr-kata-clojure.validator :as v]
+            [bank-ocr-kata-clojure.writer :as w]
+            [clojure.java.io :as io]
+            [clojure.string :as s]
+            [clojure.tools.cli :as cli])
   (:gen-class))
 
 (defn can-read? [file-path]
@@ -37,14 +38,14 @@
         "  --src INPUT-FILE-CONTAINING-FAXED-ACCOUNT-NUMBERS \\"
         "  --dst OUTPUT-FILE-TO-CONTAIN-DECODED-ACCOUNT-NUMBERS \\"
         ""]
-       (str/join \newline)))
+       (s/join \newline)))
 
 (defn error-msg [errors]
   (str "Please ensure that:\n"
        "  --src specifies a readable file, and that\n"
        "  --dst specifies a writable file.\n"
        "The following errors occurred while parsing your command:\n"
-       (str/join \newline errors)))
+       (s/join \newline errors)))
 
 (defn validate-args
   "Validate command line arguments. Either return a map indicating the program
@@ -67,10 +68,11 @@
   (System/exit status))
 
 (defn transform [{:keys [src dst]}]
-  (->> (reader/read-account-number-glyphs src)
-       (map (comp validator/validate
-                  parser/to-digits))
-       (writer/write-account-number-digits dst)))
+  (->> (r/read-account-number-glyphs src)
+       (map (g/with-guessing p/to-digits
+                             (every-pred v/valid?
+                                         v/legible?)))
+       (w/write-account-number-digits dst)))
 
 (defn -main
   [& args]

@@ -17,11 +17,11 @@
   A normal file contains around 500 entries.
 
   Your first task is to write a program that can take this file and parse it into actual account numbers."
-  (:require [clojure.test :refer [deftest is testing]]
-            [clojure.string :as s]
+  (:require [bank-ocr-kata-clojure.parser :as p]
             [bank-ocr-kata-clojure.reader :as r]
-            [bank-ocr-kata-clojure.parser :as p]
-            [bank-ocr-kata-clojure.tools :as t]))
+            [bank-ocr-kata-clojure.tools :as t]
+            [clojure.string :as s]
+            [clojure.test :refer [deftest is testing]]))
 
 (deftest to-digits
   (is (= "000000000"
