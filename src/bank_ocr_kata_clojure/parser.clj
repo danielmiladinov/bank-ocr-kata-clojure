@@ -84,7 +84,7 @@
                                  (get-in chars [2 pos])
                                  [\newline]))]
      
-    (get to-char extraction)))
+    (get to-char extraction \?)))
 
 (defn to-digits [glyph]
   (let [glyph-lines (->> (s/split-lines glyph)

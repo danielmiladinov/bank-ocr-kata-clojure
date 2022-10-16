@@ -1,7 +1,14 @@
 (ns bank-ocr-kata-clojure.validator)
 
 (defn- to-int [^Character c]
-  (Integer/valueOf (.toString c)))
+  (try
+    (Integer/valueOf (.toString c))
+    (catch NumberFormatException _
+      0)))
+
+(defn legible? [^String account-number]
+  (every? #(Character/isDigit ^Character %)
+          account-number))
 
 (defn valid? [^String account-number]
   (and (string? account-number)
@@ -17,3 +24,15 @@
                       (* 8 (to-int d8))
                       (* 9 (to-int d9)))
                    11)))))
+
+(defn validate
+  "Accepts a parsed account number for input, possibly appending a status if there was a problem with the number.
+   If the account number has a wrong checksum, or was illegible,
+   it will be followed by an additional status string:
+     - “ERR”: wrong checksum
+     - “ILL”: illegible number"
+  [^String account-number]
+  (cond
+    ((complement legible?) account-number) (str account-number " ILL")
+    ((complement valid?) account-number) (str account-number " ERR")
+    :else account-number))
