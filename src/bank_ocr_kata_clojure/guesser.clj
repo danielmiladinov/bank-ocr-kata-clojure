@@ -1,17 +1,17 @@
 (ns bank-ocr-kata-clojure.guesser
   (:require [bank-ocr-kata-clojure.parser :as p]
-            [clojure.string :as s]))
+            [clojure.string :as str]))
 
-(defn- change-char-at [pos new-char glyph]
-  (apply str (assoc (vec glyph) pos new-char)))
+(defn- change-char-at [row col new-char glyph]
+  (assoc glyph row (apply str (assoc (vec (nth glyph row)) col new-char))))
 
-(defn- chg-tp-md [new-char] (fn [glyph] (change-char-at 1 new-char glyph)))
-(defn- chg-md-lt [new-char] (fn [glyph] (change-char-at 4 new-char glyph)))
-(defn- chg-md-md [new-char] (fn [glyph] (change-char-at 5 new-char glyph)))
-(defn- chg-md-rt [new-char] (fn [glyph] (change-char-at 6 new-char glyph)))
-(defn- chg-bt-lt [new-char] (fn [glyph] (change-char-at 8 new-char glyph)))
-(defn- chg-bt-md [new-char] (fn [glyph] (change-char-at 9 new-char glyph)))
-(defn- chg-bt-rt [new-char] (fn [glyph] (change-char-at 10 new-char glyph)))
+(defn- chg-tp-md [new-char] (fn [glyph] (change-char-at 0 1 new-char glyph)))
+(defn- chg-md-lt [new-char] (fn [glyph] (change-char-at 1 0 new-char glyph)))
+(defn- chg-md-md [new-char] (fn [glyph] (change-char-at 1 1 new-char glyph)))
+(defn- chg-md-rt [new-char] (fn [glyph] (change-char-at 1 2 new-char glyph)))
+(defn- chg-bt-lt [new-char] (fn [glyph] (change-char-at 2 0 new-char glyph)))
+(defn- chg-bt-md [new-char] (fn [glyph] (change-char-at 2 1 new-char glyph)))
+(defn- chg-bt-rt [new-char] (fn [glyph] (change-char-at 2 2 new-char glyph)))
 
 (defn removals [glyph]
   (->> glyph
@@ -22,6 +22,7 @@
               (chg-bt-lt \space)
               (chg-bt-md \space)
               (chg-bt-rt \space)))
+       (map (comp #(str % \newline) (partial str/join \newline)))
        set))
 
 (defn additions [glyph]
@@ -33,6 +34,7 @@
               (chg-bt-lt \|)
               (chg-bt-md \_)
               (chg-bt-rt \|)))
+       (map (comp #(str % \newline) (partial str/join \newline)))
        set))
 
 (defn alternatives [glyphs]
@@ -59,4 +61,4 @@
           (case (count guesses)
             0 (str parsed " ILL")
             1 (first guesses)
-            (str parsed " AMB ['" (s/join "', '" (sort guesses)) "']")))))))
+            (str parsed " AMB ['" (str/join "', '" (sort guesses)) "']")))))))

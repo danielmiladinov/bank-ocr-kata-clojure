@@ -1,67 +1,56 @@
 (ns bank-ocr-kata-clojure.parser
-  (:require [bank-ocr-kata-clojure.tools :as t]
-            [clojure.set :as set]
-            [clojure.string :as s]))
+  (:require [clojure.set :as set]
+            [clojure.string :as str]))
 
 (def zero
-  (t/strip-margin "| _ 
-                   || |
-                   ||_|
-                   "))
+  [" _ "
+   "| |"
+   "|_|"])
 
 (def one
-  (t/strip-margin "|   
-                   |  |
-                   |  |
-                   "))
+  ["   "
+   "  |"
+   "  |"])
 
 (def two
-  (t/strip-margin "| _ 
-                   | _|
-                   ||_ 
-                   "))
+  [" _ "
+   " _|"
+   "|_ "])
 
 (def three
-  (t/strip-margin "| _ 
-                   | _|
-                   | _|
-                   "))
+  [" _ "
+   " _|"
+   " _|"])
 
 (def four
-  (t/strip-margin "|   
-                   ||_|
-                   |  |
-                   "))
+  ["   "
+   "|_|"
+   "  |"])
 
 (def five
-  (t/strip-margin "| _ 
-                   ||_ 
-                   | _|
-                   "))
+  [" _ "
+   "|_ "
+   " _|"])
 
 (def six
-  (t/strip-margin "| _ 
-                   ||_ 
-                   ||_|
-                   "))
+  [" _ "
+   "|_ "
+   "|_|"])
 
 (def seven
-  (t/strip-margin "| _ 
-                   |  |
-                   |  |
-                   "))
+  [" _ "
+   "  |"
+   "  |"])
 
 (def eight
-  (t/strip-margin "| _ 
-                   ||_|
-                   ||_|
-                   "))
+  [" _ "
+   "|_|"
+   "|_|"])
 
 (def nine
-  (t/strip-margin "| _ 
-                   ||_|
-                   | _|
-                   "))
+  [" _ "
+   "|_|"
+   " _|"])
 
 (def to-char {zero  \0
               one   \1
@@ -76,11 +65,6 @@
 
 (def to-glyph (set/map-invert to-char))
 
-(defn lines-of [glyph]
-  (->> (s/split-lines glyph)
-       (map (comp vec (partial partition 3)))
-       vec))
-
 (defn glyphs-of [lines]
   (str (->> lines
             (map (comp (partial apply str)
@@ -90,34 +74,33 @@
        \newline))
 
 (defn length-of [glyphs]
-  (quot (->> (s/split-lines glyphs)
+  (quot (->> (str/split-lines glyphs)
              (map count)
              (apply max))
         3))
 
 (defn glyph-at [glyphs pos]
-  (let [lines (lines-of glyphs)]
-    (apply str (concat (get-in lines [0 pos])
-                       [\newline]
-                       (get-in lines [1 pos])
-                       [\newline]
-                       (get-in lines [2 pos])
-                       [\newline]))))
+  (let [start (* pos 3)
+        end   (+ start 3)]
+    (->> (str/split-lines glyphs)
+         (filter (comp (partial <= 3) count))
+         (mapv #(apply str (-> % vec (subvec start end)))))))
 
 (defn extract-char [glyphs pos]
   (get to-char (glyph-at glyphs pos) \?))
 
-(defn to-digits [glyph]
-  (->> (range 9)
+(defn to-digits [glyphs]
+  (->> (length-of glyphs)
+       range
        (reduce (fn [sb pos]
-                 (doto sb (.append (extract-char glyph pos))))
+                 (doto sb (.append (extract-char glyphs pos))))
                (StringBuffer.))
        (.toString)))
 
 (defn to-glyphs [digits]
   (->> digits
        str
-       (map (comp lines-of to-glyph))
+       (map to-glyph)
        (reduce (fn [[acc-line-1
                      acc-line-2
                      acc-line-3]
@@ -130,11 +113,24 @@
                [[] [] []])
        glyphs-of))
 
+(defn printable [glyph-lines]
+  (str (str/join \newline glyph-lines)
+       \newline))
+
+(defn- updated-glyph-line [glyph-pos glyph-line replacement-line]
+  (let [[char-0 char-1 char-2] (vec replacement-line)
+        char-pos (* 3 glyph-pos)]
+    (-> glyph-line
+        (assoc (+ 0 char-pos) char-0)
+        (assoc (+ 1 char-pos) char-1)
+        (assoc (+ 2 char-pos) char-2))))
+
 (defn replace-in-glyphs [glyphs pos replacement]
-  (let [glyphs-lines      (lines-of glyphs)
-        replacement-lines (lines-of replacement)
-        replaced-lines    (-> glyphs-lines
-                              (assoc-in [0 pos] (get-in replacement-lines [0 0]))
-                              (assoc-in [1 pos] (get-in replacement-lines [1 0]))
-                              (assoc-in [2 pos] (get-in replacement-lines [2 0])))]
-    (glyphs-of replaced-lines)))
+  (let [[g-line-0 g-line-1 g-line-2] (mapv vec (str/split-lines glyphs))
+        [r-line-0 r-line-1 r-line-2] (mapv vec (str/split-lines replacement))
+        replaced-lines (->> [(updated-glyph-line pos g-line-0 r-line-0)
+                             (updated-glyph-line pos g-line-1 r-line-1)
+                             (updated-glyph-line pos g-line-2 r-line-2)]
+                            (map str/join)
+                            printable)]
+    replaced-lines))
